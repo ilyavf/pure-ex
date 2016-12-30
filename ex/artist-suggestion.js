@@ -8,24 +8,37 @@
 
 const Task = require('data.task');
 const request = require('request');
+const Either = require('data.either');
 
 const getArgs = new Task((rej, res) => res(process.argv));
 const names = getArgs.map(args => args.slice(2));
 
+const eitherToTask = e =>
+  e.fold(Task.rejected, Task.of);
+
+const tryParse = Either.try(JSON.parse);
+
 const httpGet = url =>
-  new Task((rej, res) => {
-    request(url, function (error, response, body) {
-      if (!error && response.statusCode == 200) {
-        res(JSON.parse(body));
-      }
-    })
-  });
+  new Task((rej, res) =>
+    request(url, (error, response, body) =>
+      error ? rej(error) : res(body)))
+  .map(tryParse)
+  .chain(eitherToTask)
+
+const first = xs =>
+  Either.fromNullable(xs[0]);
 
 const findArtist = name =>
-  httpGet('https://api.spotify.com/v1/search?type=artist&q=' + name)
-    .map(r => r.artists.items[0]);
+  httpGet(`https://api.spotify.com/v1/search?type=artist&q=${name}`)
+    .map(r => r.artists.items)
+    .map(first)
+    .chain(eitherToTask);
 
 const relatedArtists = id =>
+  httpGet(`https://api.spotify.com/v1/artists/${id}/related-artists`)
+    .map(r => r.artists.map(a => a.name));
+
+const relatedArtists1 = id =>
   new Task((rej, res) => res([{id: id, artists:[{name:'One'},{name:'Two'}]}]));
 
 const related = name =>
