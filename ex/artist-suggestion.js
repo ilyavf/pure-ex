@@ -23,7 +23,7 @@ const httpGet = url =>
     request(url, (error, response, body) =>
       error ? rej(error) : res(body)))
   .map(tryParse)
-  .chain(eitherToTask)
+  .chain(eitherToTask);
 
 const first = xs =>
   Either.fromNullable(xs[0]);
@@ -38,19 +38,28 @@ const relatedArtists = id =>
   httpGet(`https://api.spotify.com/v1/artists/${id}/related-artists`)
     .map(r => r.artists.map(a => a.name));
 
-const relatedArtists1 = id =>
-  new Task((rej, res) => res([{id: id, artists:[{name:'One'},{name:'Two'}]}]));
-
 const related = name =>
   findArtist(name)
   .map(artist => artist.id)
   .chain(relatedArtists);
 
+const Intersection = xs =>
+({
+  xs,
+  concat: ({xs: ys}) =>
+    Intersection(xs.filter(x => ys.some(y => x === y)))
+});
+console.log(Intersection([1,2,4,5]).concat(Intersection([10,2,20,5,6])));
+
+const artistIntersection = rel1 => rel2 =>
+  Intersection(rel1).concat(Intersection(rel2));
+
 const main = ([name1, name2]) =>
-  Task.of(rel1 => rel2 => [rel1, rel2])
+  Task.of(artistIntersection)
   .ap(related(name1))
   .ap(related(name2));
 
-
-
 names.chain(main).fork(console.err, console.log);
+
+// To run:
+// $ node ex/artist-suggestion.js oasis blur
