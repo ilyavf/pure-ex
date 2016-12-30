@@ -1,6 +1,6 @@
 // Ex:
 // - get two artists
-// - get related artists for both
+// - get related artists for each
 // - give suggestions (intersection of both related items)
 
 // search: artists.items[].id
