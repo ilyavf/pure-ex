@@ -9,6 +9,7 @@
 const Task = require('data.task');
 const request = require('request');
 const Either = require('data.either');
+const { List } = require('immutable-ext');
 
 const getArgs = new Task((rej, res) => res(process.argv));
 const names = getArgs.map(args => args.slice(2));
@@ -49,15 +50,21 @@ const Intersection = xs =>
   concat: ({xs: ys}) =>
     Intersection(xs.filter(x => ys.some(y => x === y)))
 });
-console.log(Intersection([1,2,4,5]).concat(Intersection([10,2,20,5,6])));
+//console.log(Intersection([1,2,4,5]).concat(Intersection([10,2,20,5,6])));
 
-const artistIntersection = rel1 => rel2 =>
-  Intersection(rel1).concat(Intersection(rel2));
+const artistIntersection = rels =>
+  rels.foldMap(Intersection).xs;
+  //Intersection(rel1).concat(Intersection(rel2)).concat(Intersection(rel3));
 
-const main = ([name1, name2]) =>
-  Task.of(artistIntersection)
-  .ap(related(name1))
-  .ap(related(name2));
+const main = names =>
+  List(names)
+  .traverse(Task.of, related)
+  .map(artistIntersection);
+
+  //Task.of(artistIntersection)
+  //.ap(related(name1))
+  //.ap(related(name2))
+  //.ap(related(name3));
 
 names.chain(main).fork(console.err, console.log);
 
